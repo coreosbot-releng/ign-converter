@@ -15,30 +15,28 @@
 package types
 
 import (
+	"path"
+
 	"github.com/coreos/ignition/v2/config/shared/errors"
 	"github.com/coreos/ignition/v2/config/util"
-
-	"github.com/coreos/vcontext/path"
-	"github.com/coreos/vcontext/report"
 )
 
-func (f File) Validate(c path.ContextPath) (r report.Report) {
-	r.Merge(f.Node.Validate(c))
-	r.AddOnError(c.Append("mode"), validateMode(f.Mode))
-	r.AddOnWarn(c.Append("mode"), validateModeSpecialBits(f.Mode))
-	r.AddOnError(c.Append("overwrite"), f.validateOverwrite())
-	return
-}
-
-func (f File) validateOverwrite() error {
-	if util.IsTrue(f.Overwrite) && f.Contents.Source == nil {
-		return errors.ErrOverwriteAndNilSource
+func validatePath(p string) error {
+	if p == "" {
+		return errors.ErrNoPath
+	}
+	if !path.IsAbs(p) {
+		return errors.ErrPathRelative
+	}
+	if path.Clean(p) != p {
+		return errors.ErrDirtyPath
 	}
 	return nil
 }
 
-func (f FileEmbedded1) IgnoreDuplicates() map[string]struct{} {
-	return map[string]struct{}{
-		"Append": {},
+func validatePathNilOK(p *string) error {
+	if util.NilOrEmpty(p) {
+		return nil
 	}
+	return validatePath(*p)
 }

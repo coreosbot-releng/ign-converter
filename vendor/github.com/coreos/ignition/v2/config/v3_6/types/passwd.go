@@ -14,23 +14,10 @@
 
 package types
 
-import (
-	"github.com/coreos/ignition/v2/config/shared/errors"
-)
-
-func validateMode(m *int) error {
-	if m != nil && (*m < 0 || *m > 07777) {
-		return errors.ErrFileIllegalMode
-	}
-	return nil
+func (p PasswdUser) Key() string {
+	return p.Name
 }
 
-func validateModeSpecialBits(m *int) error {
-	if m != nil {
-		mode := uint32(*m)
-		if mode&07000 != 0 {
-			return errors.ErrModeSpecialBits
-		}
-	}
-	return nil
+func (g PasswdGroup) Key() string {
+	return g.Name
 }

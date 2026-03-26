@@ -15,6 +15,9 @@
 package types
 
 import (
+	"encoding/json"
+	"net/url"
+
 	"github.com/coreos/ignition/v2/config/shared/errors"
 	"github.com/coreos/ignition/v2/config/util"
 
@@ -22,23 +25,41 @@ import (
 	"github.com/coreos/vcontext/report"
 )
 
-func (f File) Validate(c path.ContextPath) (r report.Report) {
-	r.Merge(f.Node.Validate(c))
-	r.AddOnError(c.Append("mode"), validateMode(f.Mode))
-	r.AddOnWarn(c.Append("mode"), validateModeSpecialBits(f.Mode))
-	r.AddOnError(c.Append("overwrite"), f.validateOverwrite())
+func (t Tang) Key() string {
+	return t.URL
+}
+
+func (t Tang) Validate(c path.ContextPath) (r report.Report) {
+	r.AddOnError(c.Append("url"), validateTangURL(t.URL))
+	if util.NilOrEmpty(t.Thumbprint) {
+		r.AddOnError(c.Append("thumbprint"), errors.ErrTangThumbprintRequired)
+	}
+	r.AddOnError(c.Append("advertisement"), validateTangAdvertisement(t.Advertisement))
 	return
 }
 
-func (f File) validateOverwrite() error {
-	if util.IsTrue(f.Overwrite) && f.Contents.Source == nil {
-		return errors.ErrOverwriteAndNilSource
+func validateTangURL(s string) error {
+	u, err := url.Parse(s)
+	if err != nil {
+		return errors.ErrInvalidUrl
 	}
-	return nil
+
+	switch u.Scheme {
+	case "http", "https":
+		return nil
+	default:
+		return errors.ErrInvalidScheme
+	}
 }
 
-func (f FileEmbedded1) IgnoreDuplicates() map[string]struct{} {
-	return map[string]struct{}{
-		"Append": {},
+func validateTangAdvertisement(s *string) error {
+	if util.NotEmpty(s) {
+		var adv any
+		err := json.Unmarshal([]byte(*s), &adv)
+		if err != nil {
+			return errors.ErrInvalidTangAdvertisement
+		}
 	}
+
+	return nil
 }
