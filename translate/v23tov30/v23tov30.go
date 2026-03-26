@@ -39,7 +39,7 @@ func Check2_3(cfg old.Config, fsMap map[string]string) error {
 	}
 
 	if len(cfg.Networkd.Units) != 0 {
-		return util.UsesNetworkdError
+		return util.ErrUsesNetworkd
 	}
 
 	// check that all filesystems have a path
@@ -142,7 +142,7 @@ func Translate(cfg old.Config, fsMap map[string]string) (types.Config, error) {
 			},
 			Security: types.Security{
 				TLS: types.TLS{
-					CertificateAuthorities: translateCAs(cfg.Ignition.Security.TLS.CertificateAuthorities),
+					CertificateAuthorities: translateCAs(cfg.Ignition.Security.CertificateAuthorities),
 				},
 			},
 			Timeouts: types.Timeouts{

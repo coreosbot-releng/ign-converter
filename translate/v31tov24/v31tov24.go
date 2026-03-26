@@ -32,18 +32,18 @@ import (
 func Translate(cfg types.Config) (old.Config, error) {
 	rpt := validate.ValidateWithContext(cfg, nil)
 	if rpt.IsFatal() {
-		return old.Config{}, fmt.Errorf("Invalid input config:\n%s", rpt.String())
+		return old.Config{}, fmt.Errorf("invalid input config:\n%s", rpt.String())
 	}
 
 	// Check for potential issues in the spec 3 config
 	for _, m := range cfg.Ignition.Config.Merge {
 		if m.Compression != nil {
-			return old.Config{}, fmt.Errorf("Compression in Ignition.Config.Merge is not supported on 2.4")
+			return old.Config{}, fmt.Errorf("compression in Ignition.Config.Merge is not supported on 2.4")
 		}
 	}
 
 	if cfg.Ignition.Config.Replace.Compression != nil {
-		return old.Config{}, fmt.Errorf("Compression in Ignition.Config.Replace is not supported on 2.4")
+		return old.Config{}, fmt.Errorf("compression in Ignition.Config.Replace is not supported on 2.4")
 	}
 
 	for _, ca := range cfg.Ignition.Security.TLS.CertificateAuthorities {
@@ -374,7 +374,7 @@ func translateFiles(files []types.File, fss []string) (ret []old.File) {
 			file.Node.Overwrite = util.BoolPStrict(false)
 		}
 
-		if f.FileEmbedded1.Contents.Source != nil {
+		if f.Contents.Source != nil {
 			file.FileEmbedded1.Contents = old.FileContents{
 				Compression: util.StrV(f.Contents.Compression),
 				Source:      util.StrV(f.Contents.Source),
