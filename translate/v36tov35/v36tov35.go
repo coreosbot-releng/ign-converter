@@ -27,7 +27,7 @@ import (
 
 // Copy of github.com/coreos/ignition/v2/config/v3_5/translate/translate.go
 // with the types & old_types imports reversed (the referenced file translates
-// from 3.6 -> 3.5 but as a result only touches fields that are understood by
+// from 3.5 -> 3.6 but as a result only touches fields that are understood by
 // the 3.5 spec).
 func translateFileEmbedded1(old old_types.FileEmbedded1) (ret types.FileEmbedded1) {
 	tr := translate.NewTranslator()
