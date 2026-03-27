@@ -79,15 +79,19 @@ func main() {
 		os.Exit(0)
 	}
 
-	var infile *os.File = os.Stdin
-	var outfile *os.File = os.Stdout
+	var infile = os.Stdin
+	var outfile = os.Stdout
 	if input != "" {
 		var err error
 		infile, err = os.Open(input)
 		if err != nil {
 			fail("failed to open %s: %v", input, err)
 		}
-		defer infile.Close()
+		defer func() {
+			if err := infile.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "failed to close %s: %v\n", input, err)
+			}
+		}()
 	}
 
 	dataIn, err := io.ReadAll(infile)
@@ -149,7 +153,11 @@ func main() {
 		if err != nil {
 			fail("failed to open %s: %v", output, err)
 		}
-		defer outfile.Close()
+		defer func() {
+			if err := outfile.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "failed to close %s: %v\n", output, err)
+			}
+		}()
 	}
 
 	if _, err := outfile.Write(dataOut); err != nil {
