@@ -39,7 +39,7 @@ func Check2_4(cfg old.Config, fsMap map[string]string) error {
 	}
 
 	if len(cfg.Networkd.Units) != 0 {
-		return util.ErrUsesNetworkd
+		return util.UsesNetworkdError
 	}
 
 	// check that all filesystems have a path
