@@ -48,7 +48,7 @@ func Translate(cfg types.Config) (old.Config, error) {
 
 	for _, ca := range cfg.Ignition.Security.TLS.CertificateAuthorities {
 		if ca.Compression != nil {
-			return old.Config{}, fmt.Errorf("Compression in Ignition.Security.TLS.CertificateAuthorities is not supported on 2.4")
+			return old.Config{}, fmt.Errorf("compression in Ignition.Security.TLS.CertificateAuthorities is not supported on 2.4")
 		}
 	}
 
@@ -101,7 +101,7 @@ func Translate(cfg types.Config) (old.Config, error) {
 	// Sanity check the returned config
 	oldrpt := oldValidate.ValidateWithoutSource(reflect.ValueOf(res))
 	if oldrpt.IsFatal() {
-		return old.Config{}, fmt.Errorf("Converted spec has unexpected fatal error:\n%s", oldrpt.String())
+		return old.Config{}, fmt.Errorf("converted spec has unexpected fatal error:\n%s", oldrpt.String())
 	}
 	return res, nil
 }
@@ -370,38 +370,38 @@ func translateFiles(files []types.File, fss []string) (ret []old.File) {
 		// Overwrite defaults to false in spec 3 and true in spec 2;
 		// we want to retain the "unset" default of spec 3 when translating down,
 		// so we're defaulting to false
-		if f.Node.Overwrite == nil {
-			file.Node.Overwrite = util.BoolPStrict(false)
+		if f.Overwrite == nil {
+			file.Overwrite = util.BoolPStrict(false)
 		}
 
 		if f.Contents.Source != nil {
-			file.FileEmbedded1.Contents = old.FileContents{
+			file.Contents = old.FileContents{
 				Compression: util.StrV(f.Contents.Compression),
 				Source:      util.StrV(f.Contents.Source),
 				HTTPHeaders: translateHTTPHeaders(f.Contents.HTTPHeaders),
 			}
-			file.FileEmbedded1.Contents.Verification.Hash = f.FileEmbedded1.Contents.Verification.Hash
-			file.FileEmbedded1.Append = false
+			file.Contents.Verification.Hash = f.Contents.Verification.Hash
+			file.Append = false
 			ret = append(ret, file)
 		}
-		if f.FileEmbedded1.Append != nil {
-			for _, fc := range f.FileEmbedded1.Append {
+		if f.Append != nil {
+			for _, fc := range f.Append {
 				appendFile := old.File{
 					Node:          file.Node,
 					FileEmbedded1: file.FileEmbedded1,
 				}
-				appendFile.FileEmbedded1.Contents = old.FileContents{
+				appendFile.Contents = old.FileContents{
 					Compression: util.StrV(fc.Compression),
 					Source:      util.StrV(fc.Source),
 					HTTPHeaders: translateHTTPHeaders(fc.HTTPHeaders),
 				}
-				appendFile.FileEmbedded1.Contents.Verification.Hash = fc.Verification.Hash
-				appendFile.FileEmbedded1.Append = true
+				appendFile.Contents.Verification.Hash = fc.Verification.Hash
+				appendFile.Append = true
 				// In spec 3, we may have a file object with overwrite true, contents, and some appends.
 				// When the appended files are split out to separate file objects for spec 2,
 				// the append false object may still have overwrite true,
 				// but the append true objects must have overwrite false in spec 2.
-				appendFile.Node.Overwrite = util.BoolPStrict(false)
+				appendFile.Overwrite = util.BoolPStrict(false)
 				ret = append(ret, appendFile)
 			}
 		}
