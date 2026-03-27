@@ -17,10 +17,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/coreos/ignition/config/util"
 	"github.com/coreos/ignition/v2/config/translate"
+	"github.com/coreos/ignition/v2/config/util"
 	"github.com/coreos/ignition/v2/config/v3_5/types"
-
 	old_types "github.com/coreos/ignition/v2/config/v3_6/types"
 	"github.com/coreos/ignition/v2/config/validate"
 )
@@ -100,10 +99,6 @@ func Translate(cfg old_types.Config) (types.Config, error) {
 }
 
 func checkValue(v reflect.Value) error {
-	if !v.IsValid() {
-		return nil
-	}
-
 	// v3.6 introduced arbitrary custom clevis pin support
 	if v.Type() == reflect.TypeOf(old_types.ClevisCustom{}) {
 		// Check if Pin field is set
@@ -117,30 +112,33 @@ func checkValue(v reflect.Value) error {
 		}
 	}
 
-	// Recursively check nested structures
-	switch v.Kind() {
-	case reflect.Struct:
-		for i := 0; i < v.NumField(); i++ {
+	return descend(v)
+}
+
+func descend(v reflect.Value) error {
+	k := v.Type().Kind()
+	switch {
+	case util.IsPrimitive(k):
+		return nil
+	case k == reflect.Struct:
+		for i := 0; i < v.NumField(); i += 1 {
 			err := checkValue(v.Field(i))
 			if err != nil {
 				return err
 			}
 		}
-	case reflect.Slice, reflect.Array:
-		for i := 0; i < v.Len(); i++ {
+	case k == reflect.Slice:
+		for i := 0; i < v.Len(); i += 1 {
 			err := checkValue(v.Index(i))
 			if err != nil {
 				return err
 			}
 		}
-	case reflect.Ptr:
-		if !v.IsNil() {
-			err := checkValue(v.Elem())
-			if err != nil {
-				return err
-			}
+	case k == reflect.Ptr:
+		v = v.Elem()
+		if v.IsValid() {
+			return checkValue(v)
 		}
 	}
-
 	return nil
 }
