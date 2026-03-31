@@ -3168,7 +3168,8 @@ func TestTranslate3_4to3_3(t *testing.T) {
 	})
 	assert.Error(t, err)
 
-	_, err = v34tov33.Translate(types3_4.Config{
+	// Test that special mode bits are correctly masked out during translation
+	res, err = v34tov33.Translate(types3_4.Config{
 		Ignition: types3_4.Ignition{
 			Version: "3.4.0",
 		},
@@ -3185,9 +3186,11 @@ func TestTranslate3_4to3_3(t *testing.T) {
 			},
 		},
 	})
-	assert.Error(t, err)
+	assert.NoError(t, err)
+	// Verify that special mode bits were masked out (01777 -> 0777)
+	assert.Equal(t, util.IntP(0777), res.Storage.Files[0].Mode)
 
-	_, err = v34tov33.Translate(types3_4.Config{
+	res, err = v34tov33.Translate(types3_4.Config{
 		Ignition: types3_4.Ignition{
 			Version: "3.4.0",
 		},
@@ -3211,7 +3214,9 @@ func TestTranslate3_4to3_3(t *testing.T) {
 			},
 		},
 	})
-	assert.Error(t, err)
+	assert.NoError(t, err)
+	// Verify that special mode bits were masked out (01777 -> 0777)
+	assert.Equal(t, util.IntP(0777), res.Storage.Directories[0].Mode)
 
 	_, err = v34tov33.Translate(types3_4.Config{
 		Ignition: types3_4.Ignition{

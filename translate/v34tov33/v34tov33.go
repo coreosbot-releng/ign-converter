@@ -135,18 +135,6 @@ func checkValue(v reflect.Value) error {
 		if len(luks.OpenOptions) > 0 {
 			return fmt.Errorf("invalid input config: luks openOptions is not supported in spec v3.3")
 		}
-	case reflect.TypeOf(old_types.FileEmbedded1{}):
-		f := v.Interface().(old_types.FileEmbedded1)
-		// 3.3 does not support special mode bits in files
-		if f.Mode != nil && (*f.Mode&07000) != 0 {
-			return fmt.Errorf("invalid input config: special mode bits are not supported in spec v3.3")
-		}
-	case reflect.TypeOf(old_types.DirectoryEmbedded1{}):
-		d := v.Interface().(old_types.DirectoryEmbedded1)
-		// 3.3 does not support special mode bits in directories
-		if d.Mode != nil && (*d.Mode&07000) != 0 {
-			return fmt.Errorf("invalid input config: special mode bits are not supported in spec v3.3")
-		}
 	case reflect.TypeOf(old_types.Resource{}):
 		resource := v.Interface().(old_types.Resource)
 		// 3.3 does not support arn: scheme for s3
