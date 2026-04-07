@@ -2293,7 +2293,7 @@ var (
 						},
 					},
 					FileEmbedded1: types3_6.FileEmbedded1{
-						Mode: util.IntP(04755), // setuid bit - will be masked to 0755
+						Mode: util.IntP(0755),
 						Append: []types3_6.Resource{
 							{
 								Compression: util.StrP("gzip"),
@@ -2341,7 +2341,7 @@ var (
 						},
 					},
 					DirectoryEmbedded1: types3_6.DirectoryEmbedded1{
-						Mode: util.IntP(02775), // setgid bit - will be masked to 0775
+						Mode: util.IntP(0775),
 					},
 				},
 			},
@@ -2462,7 +2462,7 @@ var (
 						},
 					},
 					FileEmbedded1: types3_5.FileEmbedded1{
-						Mode: util.IntP(0755), // special bits masked out
+						Mode: util.IntP(0755),
 						Append: []types3_5.Resource{
 							{
 								Compression: util.StrP("gzip"),
@@ -2510,7 +2510,7 @@ var (
 						},
 					},
 					DirectoryEmbedded1: types3_5.DirectoryEmbedded1{
-						Mode: util.IntP(0775), // special bits masked out
+						Mode: util.IntP(0775),
 					},
 				},
 			},
@@ -3294,6 +3294,53 @@ func TestTranslate3_6to3_5(t *testing.T) {
 		t.Fatalf("Failed translation: %v", err)
 	}
 	assert.Equal(t, downtranslateConfig3_5, res)
+
+	// Translation with special mode bits in files should fail
+	_, err = v36tov35.Translate(types3_6.Config{
+		Ignition: types3_6.Ignition{
+			Version: "3.6.0",
+		},
+		Storage: types3_6.Storage{
+			Files: []types3_6.File{
+				{
+					Node: types3_6.Node{
+						Path: "/root/file.txt",
+					},
+					FileEmbedded1: types3_6.FileEmbedded1{
+						Mode: util.IntP(01777),
+					},
+				},
+			},
+		},
+	})
+	assert.Error(t, err)
+
+	// Translation with special mode bits in directories should fail
+	_, err = v36tov35.Translate(types3_6.Config{
+		Ignition: types3_6.Ignition{
+			Version: "3.6.0",
+		},
+		Storage: types3_6.Storage{
+			Directories: []types3_6.Directory{
+				{
+					Node: types3_6.Node{
+						Path:      "/rootdir",
+						Overwrite: util.BoolP(true),
+						User: types3_6.NodeUser{
+							ID: util.IntP(1000),
+						},
+						Group: types3_6.NodeGroup{
+							Name: util.StrP("groupname"),
+						},
+					},
+					DirectoryEmbedded1: types3_6.DirectoryEmbedded1{
+						Mode: util.IntP(01777),
+					},
+				},
+			},
+		},
+	})
+	assert.Error(t, err)
 
 	// Translation with unsupported custom clevis pin
 	_, err = v36tov35.Translate(types3_6.Config{

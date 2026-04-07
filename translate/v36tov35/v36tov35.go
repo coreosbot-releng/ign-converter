@@ -28,36 +28,6 @@ import (
 // with the types & old_types imports reversed (the referenced file translates
 // from 3.5 -> 3.6 but as a result only touches fields that are understood by
 // the 3.5 spec).
-func translateFileEmbedded1(old old_types.FileEmbedded1) (ret types.FileEmbedded1) {
-	tr := translate.NewTranslator()
-	tr.Translate(&old.Append, &ret.Append)
-	tr.Translate(&old.Contents, &ret.Contents)
-	if old.Mode != nil {
-		// Since fixing #2024 we now have to mask for the stabilized specs
-		// to reduce security risks of applying permissions that were not applied
-		// before the fix was implemented.
-		// We support the special mode bits for specs >=3.6.0, so if
-		// the user provides special mode bits in an Ignition config
-		// with the version < 3.6.0, then we need to explicitly mask
-		// those bits out during translation.
-		ret.Mode = util.IntToPtr(*old.Mode & ^07000)
-	}
-	return
-}
-
-func translateDirectoryEmbedded1(old old_types.DirectoryEmbedded1) (ret types.DirectoryEmbedded1) {
-	if old.Mode != nil {
-		// Since fixing #2024 we now have to mask for the stabilized specs
-		// to reduce security risks of applying permissions that were not applied
-		// before the fix was implemented.
-		// We support the special mode bits for specs >=3.6.0, so if
-		// the user provides special mode bits in an Ignition config
-		// with the version < 3.6.0, then we need to explicitly mask
-		// those bits out during translation.
-		ret.Mode = util.IntToPtr(*old.Mode & ^07000)
-	}
-	return
-}
 func translateIgnition(old old_types.Ignition) (ret types.Ignition) {
 	// use a new translator so we don't recurse infinitely
 	translate.NewTranslator().Translate(&old, &ret)
@@ -68,8 +38,6 @@ func translateIgnition(old old_types.Ignition) (ret types.Ignition) {
 func translateConfig(old old_types.Config) (ret types.Config) {
 	tr := translate.NewTranslator()
 	tr.AddCustomTranslator(translateIgnition)
-	tr.AddCustomTranslator(translateDirectoryEmbedded1)
-	tr.AddCustomTranslator(translateFileEmbedded1)
 	tr.Translate(&old, &ret)
 	return
 }
@@ -109,6 +77,20 @@ func checkValue(v reflect.Value) error {
 			if pinValue != "tpm2" && pinValue != "tang" && pinValue != "sss" {
 				return fmt.Errorf("invalid input config: arbitrary custom clevis pin '%s' is not supported in spec v3.5", pinValue)
 			}
+		}
+	}
+	// v3.6 supports special mode bits, but v3.5 and earlier have broken support.
+	// Fail translation to avoid silently breaking working functionality.
+	if v.Type() == reflect.TypeOf(old_types.FileEmbedded1{}) {
+		f := v.Interface().(old_types.FileEmbedded1)
+		if f.Mode != nil && (*f.Mode&07000) != 0 {
+			return fmt.Errorf("invalid input config: special mode bits are not supported in spec v3.5")
+		}
+	}
+	if v.Type() == reflect.TypeOf(old_types.DirectoryEmbedded1{}) {
+		d := v.Interface().(old_types.DirectoryEmbedded1)
+		if d.Mode != nil && (*d.Mode&07000) != 0 {
+			return fmt.Errorf("invalid input config: special mode bits are not supported in spec v3.5")
 		}
 	}
 
