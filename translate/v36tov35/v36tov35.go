@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package v35tov34
+package v36tov35
 
 import (
 	"fmt"
@@ -19,53 +19,32 @@ import (
 
 	"github.com/coreos/ignition/v2/config/translate"
 	"github.com/coreos/ignition/v2/config/util"
-	"github.com/coreos/ignition/v2/config/v3_4/types"
-	old_types "github.com/coreos/ignition/v2/config/v3_5/types"
+	"github.com/coreos/ignition/v2/config/v3_5/types"
+	old_types "github.com/coreos/ignition/v2/config/v3_6/types"
 	"github.com/coreos/ignition/v2/config/validate"
 )
 
 // Copy of github.com/coreos/ignition/v2/config/v3_5/translate/translate.go
 // with the types & old_types imports reversed (the referenced file translates
-// from 3.4 -> 3.5 but as a result only touches fields that are understood by
-// the 3.4 spec).
+// from 3.5 -> 3.6 but as a result only touches fields that are understood by
+// the 3.5 spec).
 func translateIgnition(old old_types.Ignition) (ret types.Ignition) {
 	// use a new translator so we don't recurse infinitely
 	translate.NewTranslator().Translate(&old, &ret)
 	ret.Version = types.MaxVersion.String()
 	return
 }
-func translateLuks(old old_types.Luks) (ret types.Luks) {
-	tr := translate.NewTranslator()
-	tr.AddCustomTranslator(translateTang)
-	tr.Translate(&old.Clevis, &ret.Clevis)
-	tr.Translate(&old.Device, &ret.Device)
-	tr.Translate(&old.KeyFile, &ret.KeyFile)
-	tr.Translate(&old.Label, &ret.Label)
-	tr.Translate(&old.Name, &ret.Name)
-	tr.Translate(&old.OpenOptions, &ret.OpenOptions)
-	tr.Translate(&old.Options, &ret.Options)
-	tr.Translate(&old.Discard, &ret.Discard)
-	tr.Translate(&old.UUID, &ret.UUID)
-	tr.Translate(&old.WipeVolume, &ret.WipeVolume)
-	return
-}
-func translateTang(old old_types.Tang) (ret types.Tang) {
-	tr := translate.NewTranslator()
-	tr.Translate(&old.Thumbprint, &ret.Thumbprint)
-	tr.Translate(&old.URL, &ret.URL)
-	return
-}
+
 func translateConfig(old old_types.Config) (ret types.Config) {
 	tr := translate.NewTranslator()
 	tr.AddCustomTranslator(translateIgnition)
-	tr.AddCustomTranslator(translateLuks)
 	tr.Translate(&old, &ret)
 	return
 }
 
-// end copied Ignition v3_5/translate block
+// end copied Ignition v3_6/translate block
 
-// Translate translates Ignition spec config v3.5 to spec v3.4
+// Translate translates Ignition spec config v3.6 to spec v3.5
 func Translate(cfg old_types.Config) (types.Config, error) {
 	rpt := validate.ValidateWithContext(cfg, nil)
 	if rpt.IsFatal() {
@@ -88,9 +67,31 @@ func Translate(cfg old_types.Config) (types.Config, error) {
 }
 
 func checkValue(v reflect.Value) error {
-	// v3.5 introduced Cex type
-	if v.Type() == reflect.TypeOf(old_types.Cex{}) {
-		return fmt.Errorf("invalid input config: 'Cex' type is not supported in spec v3.4")
+	// v3.6 introduced arbitrary custom clevis pin support
+	if v.Type() == reflect.TypeOf(old_types.ClevisCustom{}) {
+		// Check if Pin field is set
+		pinField := v.FieldByName("Pin")
+		if pinField.IsValid() && !pinField.IsNil() {
+			pinValue := pinField.Elem().String()
+			// v3.5 only supports tpm2, tang, and sss
+			if pinValue != "tpm2" && pinValue != "tang" && pinValue != "sss" {
+				return fmt.Errorf("invalid input config: arbitrary custom clevis pin '%s' is not supported in spec v3.5", pinValue)
+			}
+		}
+	}
+	// v3.6 supports special mode bits, but v3.5 and earlier have broken support.
+	// Fail translation to avoid silently breaking working functionality.
+	if v.Type() == reflect.TypeOf(old_types.FileEmbedded1{}) {
+		f := v.Interface().(old_types.FileEmbedded1)
+		if f.Mode != nil && (*f.Mode&07000) != 0 {
+			return fmt.Errorf("invalid input config: special mode bits are not supported in spec v3.5")
+		}
+	}
+	if v.Type() == reflect.TypeOf(old_types.DirectoryEmbedded1{}) {
+		d := v.Interface().(old_types.DirectoryEmbedded1)
+		if d.Mode != nil && (*d.Mode&07000) != 0 {
+			return fmt.Errorf("invalid input config: special mode bits are not supported in spec v3.5")
+		}
 	}
 
 	return descend(v)

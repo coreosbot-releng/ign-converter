@@ -1,4 +1,4 @@
-// Copyright 2020 Red Hat, Inc.
+// Copyright 2021 Red Hat, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,23 +14,9 @@
 
 package types
 
-import (
-	"github.com/coreos/ignition/v2/config/shared/errors"
-)
-
-func validateMode(m *int) error {
-	if m != nil && (*m < 0 || *m > 07777) {
-		return errors.ErrFileIllegalMode
+func (k KernelArguments) MergedKeys() map[string]string {
+	return map[string]string{
+		"ShouldExist":    "KernelArgument",
+		"ShouldNotExist": "KernelArgument",
 	}
-	return nil
-}
-
-func validateModeSpecialBits(m *int) error {
-	if m != nil {
-		mode := uint32(*m)
-		if mode&07000 != 0 {
-			return errors.ErrModeSpecialBits
-		}
-	}
-	return nil
 }

@@ -15,30 +15,13 @@
 package types
 
 import (
-	"github.com/coreos/ignition/v2/config/shared/errors"
-	"github.com/coreos/ignition/v2/config/util"
-
 	"github.com/coreos/vcontext/path"
 	"github.com/coreos/vcontext/report"
 )
 
-func (f File) Validate(c path.ContextPath) (r report.Report) {
-	r.Merge(f.Node.Validate(c))
-	r.AddOnError(c.Append("mode"), validateMode(f.Mode))
-	r.AddOnWarn(c.Append("mode"), validateModeSpecialBits(f.Mode))
-	r.AddOnError(c.Append("overwrite"), f.validateOverwrite())
+func (tls TLS) Validate(c path.ContextPath) (r report.Report) {
+	for i, ca := range tls.CertificateAuthorities {
+		r.AddOnError(c.Append("certificateAuthorities", i), ca.validateRequiredSource())
+	}
 	return
-}
-
-func (f File) validateOverwrite() error {
-	if util.IsTrue(f.Overwrite) && f.Contents.Source == nil {
-		return errors.ErrOverwriteAndNilSource
-	}
-	return nil
-}
-
-func (f FileEmbedded1) IgnoreDuplicates() map[string]struct{} {
-	return map[string]struct{}{
-		"Append": {},
-	}
 }
